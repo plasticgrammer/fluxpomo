@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pomodoro</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Helvetica Neue', sans-serif;
+    background: #0a0a12;
+    color: #fff;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── 背景パーティクル ── */
+  #bg {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── メインカード ── */
+  .card {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+
+  /* ── モード切替タブ ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 50px;
+    padding: 4px;
+  }
+  .tab {
+    padding: 7px 18px;
+    border-radius: 50px;
+    font-size: 13px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.5);
+    transition: all .3s;
+    border: none;
+    background: none;
+  }
+  .tab.active {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+
+  /* ── SVGリング ── */
+  .ring-wrap {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    cursor: pointer;
+  }
+  .ring-wrap:hover .play-hint { opacity: 1; }
+
+  svg.ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+
+  .track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 10; }
+  .progress {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear, stroke .6s;
+  }
+
+  /* グロー */
+  .glow-ring {
+    position: absolute; inset: -20px;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: box-shadow .6s;
+  }
+
+  /* 中央テキスト */
+  .center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .time-display {
+    font-size: 54px;
+    font-weight: 200;
+    letter-spacing: 2px;
+    transition: color .6s;
+    font-variant-numeric: tabular-nums;
+  }
+  .mode-label {
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: .45;
+  }
+  .play-hint {
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity .3s;
+    margin-top: 6px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  /* ── コントロール ── */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    font-size: 20px;
+    padding: 10px;
+    border-radius: 50%;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+  .btn-main {
+    width: 60px; height: 60px;
+    font-size: 24px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    color: #fff;
+    border: 1.5px solid rgba(255,255,255,0.2);
+  }
+  .btn-main:hover { background: rgba(255,255,255,0.18); }
+
+  /* ── トマトカウンター ── */
+  .tomatoes {
+    display: flex;
+    gap: 8px;
+    min-height: 22px;
+  }
+  .tomato {
+    font-size: 18px;
+    opacity: .2;
+    transition: opacity .4s, transform .4s;
+  }
+  .tomato.done { opacity: 1; transform: scale(1.1); }
+
+  /* ── フラッシュオーバーレイ ── */
+  #flash {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+
+  /* ── カスタム設定ボタン ── */
+  .settings-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+  }
+  .settings-row span { cursor: pointer; transition: color .2s; }
+  .settings-row span:hover { color: rgba(255,255,255,0.7); }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div id="flash"></div>
+
+<div class="card">
+
+  <!-- モードタブ -->
+  <div class="tabs">
+    <button class="tab active" data-mode="work">集中</button>
+    <button class="tab" data-mode="short">小休憩</button>
+    <button class="tab" data-mode="long">長休憩</button>
+  </div>
+
+  <!-- リング -->
+  <div class="ring-wrap" id="ringWrap">
+    <div class="glow-ring" id="glowRing"></div>
+    <svg class="ring" viewBox="0 0 280 280">
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" id="g1"/>
+          <stop offset="100%" id="g2"/>
+        </linearGradient>
+        <filter id="blur">
+          <feGaussianBlur stdDeviation="3"/>
+        </filter>
+      </defs>
+      <!-- シャドウトラック -->
+      <circle class="track" cx="140" cy="140" r="125"/>
+      <!-- プログレス (シャドウ用) -->
+      <circle class="progress" cx="140" cy="140" r="125"
+        id="progressShadow" stroke="rgba(0,0,0,0.3)" filter="url(#blur)"
+        style="stroke-width:14"/>
+      <!-- プログレス本体 -->
+      <circle class="progress" cx="140" cy="140" r="125"
+        id="progressRing" stroke="url(#grad)"/>
+    </svg>
+    <div class="center">
+      <div class="time-display" id="timeDisplay">25:00</div>
+      <div class="mode-label" id="modeLabel">FOCUS</div>
+      <div class="play-hint">クリックで開始</div>
+    </div>
+  </div>
+
+  <!-- ボタン -->
+  <div class="controls">
+    <button class="btn" id="btnReset" title="リセット">↺</button>
+    <button class="btn btn-main" id="btnPlay">▶</button>
+    <button class="btn" id="btnSkip" title="スキップ">⏭</button>
+  </div>
+
+  <!-- トマト -->
+  <div class="tomatoes" id="tomatoes"></div>
+
+  <!-- 設定 -->
+  <div class="settings-row">
+    <span id="lblWork" title="集中時間を変更">集中 25分</span>
+    <span>·</span>
+    <span id="lblShort" title="小休憩を変更">休憩 5分</span>
+    <span>·</span>
+    <span id="lblLong" title="長休憩を変更">長休憩 15分</span>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  設定
+// ══════════════════════════════════════════
+const MODES = {
+  work:  { label: 'FOCUS',       minutes: 25, hue: [10, 45]   },
+  short: { label: 'BREAK',       minutes: 5,  hue: [160, 200] },
+  long:  { label: 'LONG BREAK',  minutes: 15, hue: [220, 270] },
+};
+const TOTAL_SESSIONS = 4;
+
+// ══════════════════════════════════════════
+//  状態
+// ══════════════════════════════════════════
+let mode      = 'work';
+let running   = false;
+let remaining = 0;
+let total     = 0;
+let sessions  = 0;
+let tickerId  = null;
+
+// ══════════════════════════════════════════
+//  DOM
+// ══════════════════════════════════════════
+const $time    = document.getElementById('timeDisplay');
+const $label   = document.getElementById('modeLabel');
+const $play    = document.getElementById('btnPlay');
+const $reset   = document.getElementById('btnReset');
+const $skip    = document.getElementById('btnSkip');
+const $glow    = document.getElementById('glowRing');
+const $ring    = document.getElementById('progressRing');
+const $shadow  = document.getElementById('progressShadow');
+const $toms    = document.getElementById('tomatoes');
+const $flash   = document.getElementById('flash');
+const $wrap    = document.getElementById('ringWrap');
+const g1       = document.getElementById('g1');
+const g2       = document.getElementById('g2');
+const tabs     = document.querySelectorAll('.tab');
+
+// ══════════════════════════════════════════
+//  リング計算
+// ══════════════════════════════════════════
+const R   = 125;
+const C   = 2 * Math.PI * R; // ~785
+
+function updateRing() {
+  const pct    = total > 0 ? remaining / total : 1;
+  const offset = C * (1 - pct);
+  $ring.style.strokeDasharray  = C;
+  $ring.style.strokeDashoffset = offset;
+  $shadow.style.strokeDasharray  = C;
+  $shadow.style.strokeDashoffset = offset;
+}
+
+// ══════════════════════════════════════════
+//  カラーテーマ
+// ══════════════════════════════════════════
+function applyTheme(m) {
+  const [h1, h2] = MODES[m].hue;
+  const c1 = `hsl(${h1},90%,65%)`;
+  const c2 = `hsl(${h2},80%,60%)`;
+  g1.setAttribute('stop-color', c1);
+  g2.setAttribute('stop-color', c2);
+  $time.style.color = c1;
+  $glow.style.boxShadow = `0 0 60px 10px hsl(${h1},80%,50%,0.25),
+                            0 0 120px 30px hsl(${h2},80%,50%,0.12)`;
+}
+
+// ══════════════════════════════════════════
+//  時刻フォーマット
+// ══════════════════════════════════════════
+function fmt(s) {
+  const m = String(Math.floor(s / 60)).padStart(2, '0');
+  const sec = String(s % 60).padStart(2, '0');
+  return `${m}:${sec}`;
+}
+
+// ══════════════════════════════════════════
+//  モードセット
+// ══════════════════════════════════════════
+function setMode(m, autoStart = false) {
+  mode = m;
+  total = remaining = MODES[m].minutes * 60;
+  $label.textContent = MODES[m].label;
+
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === m));
+  applyTheme(m);
+  updateRing();
+  renderTime();
+
+  if (autoStart) startTimer();
+  else stopTimer();
+}
+
+// ══════════════════════════════════════════
+//  タイマー制御
+// ══════════════════════════════════════════
+function startTimer() {
+  if (remaining <= 0) return;
+  running = true;
+  $play.textContent = '⏸';
+  clearInterval(tickerId);
+  tickerId = setInterval(tick, 1000);
+}
+
+function stopTimer() {
+  running = false;
+  $play.textContent = '▶';
+  clearInterval(tickerId);
+}
+
+function toggleTimer() {
+  running ? stopTimer() : startTimer();
+}
+
+function tick() {
+  if (remaining <= 0) { onComplete(); return; }
+  remaining--;
+  renderTime();
+  updateRing();
+  // 最後5秒でドキドキ点滅
+  if (remaining <= 5 && remaining > 0) flashOnce();
+}
+
+function renderTime() {
+  $time.textContent = fmt(remaining);
+  document.title = `${fmt(remaining)} — Pomodoro`;
+}
+
+// ══════════════════════════════════════════
+//  完了
+// ══════════════════════════════════════════
+function onComplete() {
+  stopTimer();
+  playBeep();
+  bigFlash();
+
+  if (mode === 'work') {
+    sessions = Math.min(sessions + 1, TOTAL_SESSIONS);
+    renderTomatoes();
+    if (sessions >= TOTAL_SESSIONS) {
+      sessions = 0;
+      renderTomatoes();
+      setMode('long', true);
+    } else {
+      setMode('short', true);
+    }
+  } else {
+    setMode('work', true);
+  }
+}
+
+// ══════════════════════════════════════════
+//  トマト表示
+// ══════════════════════════════════════════
+function renderTomatoes() {
+  $toms.innerHTML = '';
+  for (let i = 0; i < TOTAL_SESSIONS; i++) {
+    const d = document.createElement('span');
+    d.className = 'tomato' + (i < sessions ? ' done' : '');
+    d.textContent = '🍅';
+    $toms.appendChild(d);
+  }
+}
+
+// ══════════════════════════════════════════
+//  フラッシュ
+// ══════════════════════════════════════════
+function flashOnce() {
+  const [h] = MODES[mode].hue;
+  $flash.style.background = `hsl(${h},90%,60%)`;
+  $flash.style.opacity = '0.07';
+  setTimeout(() => $flash.style.opacity = '0', 150);
+}
+function bigFlash() {
+  const [h] = MODES[mode].hue;
+  $flash.style.background = `hsl(${h},90%,60%)`;
+  $flash.style.transition = 'opacity .05s';
+  $flash.style.opacity = '0.35';
+  setTimeout(() => {
+    $flash.style.transition = 'opacity 1s';
+    $flash.style.opacity = '0';
+  }, 80);
+}
+
+// ══════════════════════════════════════════
+//  ビープ音
+// ══════════════════════════════════════════
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playBeep() {
+  try {
+    ensureAudio();
+    const [h1] = MODES[mode].hue;
+    // 3連音符
+    [0, 0.25, 0.5].forEach((delay, i) => {
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.frequency.value = 440 * (1 + i * 0.2);
+      osc.type = 'sine';
+      const t = audioCtx.currentTime + delay;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.3, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      osc.start(t); osc.stop(t + 0.3);
+    });
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════
+//  背景パーティクル
+// ══════════════════════════════════════════
+const bgCanvas = document.getElementById('bg');
+const ctx2 = bgCanvas.getContext('2d');
+let particles = [];
+
+function initParticles() {
+  bgCanvas.width  = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
+  particles = Array.from({length: 60}, () => makeParticle());
+}
+
+function makeParticle() {
+  return {
+    x: Math.random() * bgCanvas.width,
+    y: Math.random() * bgCanvas.height,
+    r: Math.random() * 1.5 + 0.3,
+    vx: (Math.random() - 0.5) * 0.3,
+    vy: -Math.random() * 0.3 - 0.1,
+    alpha: Math.random() * 0.4 + 0.05,
+    hue: MODES[mode].hue[0] + Math.random() * 40 - 20,
+  };
+}
+
+function animateParticles() {
+  ctx2.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+  particles.forEach((p, i) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    if (p.y < -5 || p.x < -5 || p.x > bgCanvas.width + 5) {
+      particles[i] = makeParticle();
+      particles[i].y = bgCanvas.height + 5;
+    }
+    ctx2.beginPath();
+    ctx2.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx2.fillStyle = `hsla(${p.hue},80%,70%,${p.alpha})`;
+    ctx2.fill();
+  });
+  requestAnimationFrame(animateParticles);
+}
+
+// ══════════════════════════════════════════
+//  イベント
+// ══════════════════════════════════════════
+$play.addEventListener('click', () => { ensureAudio(); toggleTimer(); });
+$wrap.addEventListener('click', e => {
+  if (!e.target.closest('button')) { ensureAudio(); toggleTimer(); }
+});
+$reset.addEventListener('click', () => {
+  stopTimer();
+  remaining = total;
+  renderTime(); updateRing();
+});
+$skip.addEventListener('click', () => {
+  stopTimer();
+  onComplete();
+});
+
+tabs.forEach(t => {
+  t.addEventListener('click', () => { setMode(t.dataset.mode); });
+});
+
+// 設定ラベルクリックで分数変更
+function editMinutes(m) {
+  const cur = MODES[m].minutes;
+  const v = prompt(`${MODES[m].label} の時間（分）:`, cur);
+  const n = parseInt(v);
+  if (n > 0 && n < 120) {
+    MODES[m].minutes = n;
+    document.getElementById('lbl' + m.charAt(0).toUpperCase() + m.slice(1)).textContent =
+      (m === 'work' ? '集中 ' : m === 'short' ? '休憩 ' : '長休憩 ') + n + '分';
+    if (mode === m) { total = remaining = n * 60; renderTime(); updateRing(); }
+  }
+}
+document.getElementById('lblWork').addEventListener('click',  () => editMinutes('work'));
+document.getElementById('lblShort').addEventListener('click', () => editMinutes('short'));
+document.getElementById('lblLong').addEventListener('click',  () => editMinutes('long'));
+
+window.addEventListener('resize', initParticles);
+
+// ══════════════════════════════════════════
+//  初期化
+// ══════════════════════════════════════════
+initParticles();
+animateParticles();
+setMode('work');
+renderTomatoes();
+</script>
+</body>
+</html>

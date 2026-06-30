@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>fluxpomo</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@300;400&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 
@@ -23,24 +24,9 @@ body.work  { background: linear-gradient(160deg, #1a0533 0%, #0d1b4b 40%, #0a2a3
 body.short { background: linear-gradient(160deg, #001a2e 0%, #003d5c 45%, #00607a 100%); }
 body.long  { background: linear-gradient(160deg, #0d0d2e 0%, #1a1a5e 45%, #2a2a8a 100%); }
 
-.bg-waves {
-  position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
-}
-.bg-wave {
-  position: absolute; bottom: -20px; left: -10%;
-  width: 120%; height: 200px;
-  border-radius: 40%;
-  animation: bgwave linear infinite;
-  opacity: 0.07;
-}
-.bg-wave:nth-child(1){ animation-duration: 12s; }
-.bg-wave:nth-child(2){ animation-duration: 16s; bottom: -40px; animation-delay: -4s; opacity: 0.05; }
-.bg-wave:nth-child(3){ animation-duration: 20s; bottom: -60px; animation-delay: -8s; opacity: 0.04; }
-@keyframes bgwave { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-
 .card {
   position: relative; z-index: 1;
-  display: flex; flex-direction: column; align-items: center; gap: 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 28px;
 }
 
 .tabs {
@@ -51,20 +37,25 @@ body.long  { background: linear-gradient(160deg, #0d0d2e 0%, #1a1a5e 45%, #2a2a8
   backdrop-filter: blur(10px);
 }
 .tab {
-  padding: 7px 18px; border-radius: 50px; font-size: 13px;
+  padding: 7px 20px; border-radius: 50px; font-size: 13px;
   cursor: pointer; color: rgba(255,255,255,0.45);
   transition: all .3s; border: none; background: none; font-family: inherit;
+  letter-spacing: 1px;
 }
 .tab.active { background: rgba(255,255,255,0.12); color: #fff; }
 
+/* デスクトップで大きく、モバイルで適度なサイズ */
 .water-wrap {
-  position: relative; width: 260px; height: 260px; cursor: pointer;
+  position: relative;
+  width: min(72vmin, 420px);
+  height: min(72vmin, 420px);
+  cursor: pointer;
 }
 
 .outer-ring {
   position: absolute; inset: 0; border-radius: 50%;
   border: 2px solid rgba(255,255,255,0.15);
-  box-shadow: 0 0 40px rgba(100,200,255,0.1), inset 0 0 40px rgba(100,200,255,0.05);
+  box-shadow: 0 0 60px rgba(100,200,255,0.12), inset 0 0 60px rgba(100,200,255,0.06);
 }
 
 svg.water-svg {
@@ -75,28 +66,32 @@ svg.water-svg {
 .center {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 4px;
+  align-items: center; justify-content: center; gap: 6px;
   pointer-events: none;
 }
 .time-display {
-  font-size: 52px; font-weight: 200;
-  letter-spacing: 2px; color: #fff;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+  font-family: 'Orbitron', 'Helvetica Neue', sans-serif;
+  font-size: clamp(36px, 10vmin, 68px);
+  font-weight: 300;
+  letter-spacing: 3px;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255,255,255,0.3), 0 2px 20px rgba(0,0,0,0.5);
 }
 .mode-label {
-  font-size: 11px; letter-spacing: 4px;
-  text-transform: uppercase; color: rgba(255,255,255,0.5);
+  font-size: clamp(9px, 1.8vmin, 13px);
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
 }
 .hint {
-  font-size: 11px; color: rgba(255,255,255,0.3);
-  margin-top: 6px; opacity: 0; transition: opacity .3s;
+  font-size: 11px; color: rgba(255,255,255,0.25);
+  margin-top: 4px; opacity: 0; transition: opacity .3s;
 }
 .water-wrap:hover .hint { opacity: 1; }
 
-.controls { display: flex; align-items: center; gap: 16px; }
+.controls { display: flex; align-items: center; gap: 20px; }
 .btn {
-  width: 40px; height: 40px; border-radius: 50%; font-size: 15px;
+  width: 44px; height: 44px; border-radius: 50%; font-size: 16px;
   background: rgba(255,255,255,0.07);
   border: 1px solid rgba(255,255,255,0.15);
   color: rgba(255,255,255,0.6); cursor: pointer;
@@ -106,7 +101,7 @@ svg.water-svg {
 }
 .btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
 .btn-main {
-  width: 56px; height: 56px; font-size: 20px;
+  width: 62px; height: 62px; font-size: 22px;
   background: rgba(255,255,255,0.12);
   border: 1px solid rgba(255,255,255,0.25); color: #fff;
 }
@@ -125,12 +120,6 @@ svg.water-svg {
 </head>
 <body class="work">
 
-<div class="bg-waves">
-  <div class="bg-wave"></div>
-  <div class="bg-wave"></div>
-  <div class="bg-wave"></div>
-</div>
-
 <div id="flash"></div>
 
 <div class="card">
@@ -142,23 +131,23 @@ svg.water-svg {
 
   <div class="water-wrap" id="ringWrap">
     <div class="outer-ring"></div>
-    <svg class="water-svg" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+    <svg class="water-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <clipPath id="circleClip"><circle cx="130" cy="130" r="126"/></clipPath>
+        <clipPath id="circleClip"><circle cx="200" cy="200" r="196"/></clipPath>
         <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" id="wg1" stop-color="#f97316" stop-opacity="0.9"/>
           <stop offset="100%" id="wg2" stop-color="#b91c1c" stop-opacity="1"/>
         </linearGradient>
         <linearGradient id="foamGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#fff" stop-opacity="0.25"/>
+          <stop offset="0%" stop-color="#fff" stop-opacity="0.2"/>
           <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
         </linearGradient>
       </defs>
       <g clip-path="url(#circleClip)">
-        <rect id="waterFill" x="0" y="130" width="260" height="260" fill="url(#waterGrad)" opacity="0.85"/>
+        <rect id="waterFill" x="0" y="200" width="400" height="400" fill="url(#waterGrad)" opacity="0.85"/>
         <path id="wavePath2" fill="url(#waterGrad)" opacity="0.4"/>
         <path id="wavePath1" fill="url(#waterGrad)" opacity="0.75"/>
-        <rect id="foamRect" x="0" y="118" width="260" height="28" fill="url(#foamGrad)" opacity="0.7"/>
+        <rect id="foamRect" x="0" y="188" width="400" height="32" fill="url(#foamGrad)" opacity="0.7"/>
       </g>
     </svg>
     <div class="center">
@@ -192,38 +181,39 @@ const MODES = {
   long:  { lbl:'LONG BREAK', min:15, c1:'#a78bfa', c2:'#3b0764', body:'long'  },
 };
 const TOTAL_SESS = 4;
+const W = 400, CX = 200, R = 196;
 
 let mode='work', running=false, rem=0, tot=0, sess=0, tid=null, aid=0, actx=null;
 let ph1=0, ph2=Math.PI*0.7;
 
+function $id(id){ return document.getElementById(id) }
 const $td=$id('timeDisplay'), $ml=$id('modeLabel'), $play=$id('btnPlay');
 const $toms=$id('tomatoes'), $flash=$id('flash'), $wrap=$id('ringWrap');
 const $wf=$id('waterFill'), $wp1=$id('wavePath1'), $wp2=$id('wavePath2'), $foam=$id('foamRect');
 const $wg1=$id('wg1'), $wg2=$id('wg2');
-function $id(id){ return document.getElementById(id) }
 
 function fmt(s){ return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0') }
 
-function getWaterY(){ return 130 + 126 - (tot>0?rem/tot:1)*252 }
+function getWaterY(){ return CX + R - (tot>0?rem/tot:1)*(R*2) }
 
 function wavePath(phase, amp, yBase){
-  const steps=40, w=260;
+  const steps=40;
   let d=`M 0 ${yBase}`;
   for(let i=0;i<=steps;i++){
-    const x=(i/steps)*w;
+    const x=(i/steps)*W;
     const y=yBase + Math.sin(phase+(i/steps)*Math.PI*2.2)*amp
                   + Math.sin(phase*1.6+(i/steps)*Math.PI*3.5)*(amp*0.35);
     d+=` L ${x.toFixed(1)} ${y.toFixed(1)}`;
   }
-  return d+` L 260 260 L 0 260 Z`;
+  return d+` L ${W} ${W} L 0 ${W} Z`;
 }
 
 function drawWave(){
-  const y=getWaterY(), amp=7;
+  const y=getWaterY(), amp=9;
   $wf.setAttribute('y', y+amp+2);
-  $foam.setAttribute('y', y-14);
+  $foam.setAttribute('y', y-16);
   $wp1.setAttribute('d', wavePath(ph1, amp, y));
-  $wp2.setAttribute('d', wavePath(ph2, amp*0.75, y+4));
+  $wp2.setAttribute('d', wavePath(ph2, amp*0.75, y+5));
 }
 
 (function loop(){ ph1+=0.038; ph2+=0.025; drawWave(); requestAnimationFrame(loop); })();
@@ -232,7 +222,6 @@ function applyTheme(m){
   const {c1,c2,body}=MODES[m];
   $wg1.setAttribute('stop-color',c1);
   $wg2.setAttribute('stop-color',c2);
-  document.querySelectorAll('.bg-wave').forEach(w=>w.style.background=c1);
   document.body.className=body;
 }
 

@@ -229,11 +229,7 @@ body.long  { background: linear-gradient(160deg, #0d0d2e 0%, #1a1a5e 45%, #2a2a8
     </div>
 
     <div class="settings">
-      <span id="lblWork">Focus 25m</span>
-      <span>·</span>
-      <span id="lblShort">Break 5m</span>
-      <span>·</span>
-      <span id="lblLong">Long Break 15m</span>
+      <span id="lblTimes">Focus 25m · Break 5m · Long Break 15m</span>
       <span>·</span>
       <span id="lblAuto">Auto-start Off</span>
     </div>
@@ -407,9 +403,7 @@ const modalInputs={work:$id('inpWork'),short:$id('inpShort'),long:$id('inpLong')
 const clampMin=n=>Math.min(120,Math.max(1,n||1));
 
 function updateLabels(){
-  $id('lblWork').textContent='Focus '+MODES.work.min+'m';
-  $id('lblShort').textContent='Break '+MODES.short.min+'m';
-  $id('lblLong').textContent='Long Break '+MODES.long.min+'m';
+  $id('lblTimes').textContent='Focus '+MODES.work.min+'m · Break '+MODES.short.min+'m · Long Break '+MODES.long.min+'m';
 }
 function saveDurations(){
   localStorage.setItem('fluxpomo_durations', JSON.stringify({work:MODES.work.min,short:MODES.short.min,long:MODES.long.min}));
@@ -441,7 +435,7 @@ document.querySelectorAll('.stepper button').forEach(btn=>{
     input.value=clampMin(parseInt(input.value)+parseInt(btn.dataset.step));
   });
 });
-['lblWork','lblShort','lblLong'].forEach(id=>$id(id).addEventListener('click',openModal));
+$id('lblTimes').addEventListener('click',openModal);
 $id('modalCancel').addEventListener('click',closeModal);
 $id('modalSave').addEventListener('click',saveModal);
 $modal.addEventListener('click',e=>{ if(e.target===$modal)closeModal(); });

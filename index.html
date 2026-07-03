@@ -1,32 +1,37 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>fluxpomo</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 
 body {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   font-family: 'Helvetica Neue', sans-serif;
   overflow: hidden;
   transition: background 2s;
   user-select: none;
 }
 
-body.work  { background: linear-gradient(160deg, #1a0533 0%, #0d1b4b 40%, #0a2a3d 100%); }
-body.short { background: linear-gradient(160deg, #001a2e 0%, #003d5c 45%, #00607a 100%); }
+body.work  { background: linear-gradient(160deg, #001a2e 0%, #003d5c 45%, #00607a 100%); }
+body.short { background: linear-gradient(160deg, #1a0533 0%, #0d1b4b 40%, #0a2a3d 100%); }
 body.long  { background: linear-gradient(160deg, #0d0d2e 0%, #1a1a5e 45%, #2a2a8a 100%); }
 
+/* full-bleed water */
+.water-svg { position: fixed; inset: 0; width: 100%; height: 100%; }
+.vignette {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background: linear-gradient(180deg, rgba(9,13,24,0.62) 0%, rgba(9,13,24,0.14) 30%, rgba(9,13,24,0) 55%, rgba(9,13,24,0.42) 100%);
+}
+
 .card {
-  position: relative; z-index: 1;
-  display: flex; flex-direction: column; align-items: center; gap: 28px;
+  position: fixed; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: clamp(28px,5vh,56px) 0 clamp(32px,6vh,64px);
 }
 
 .tabs {
@@ -37,191 +42,273 @@ body.long  { background: linear-gradient(160deg, #0d0d2e 0%, #1a1a5e 45%, #2a2a8
   backdrop-filter: blur(10px);
 }
 .tab {
-  padding: 7px 20px; border-radius: 50px; font-size: 13px;
+  width: 130px; padding: 9px 0; border-radius: 50px; font-size: 14px;
   cursor: pointer; color: rgba(255,255,255,0.45);
   transition: all .3s; border: none; background: none; font-family: inherit;
-  letter-spacing: 1px;
+  letter-spacing: 1px; text-align: center;
 }
-.tab.active { background: rgba(255,255,255,0.12); color: #fff; }
-
-/* デスクトップで大きく、モバイルで適度なサイズ */
-.water-wrap {
-  position: relative;
-  width: min(72vmin, 420px);
-  height: min(72vmin, 420px);
-  cursor: pointer;
-}
-
-.outer-ring {
-  position: absolute; inset: 0; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.15);
-  box-shadow: 0 0 60px rgba(100,200,255,0.12), inset 0 0 60px rgba(100,200,255,0.06);
-}
-
-svg.water-svg {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  border-radius: 50%; overflow: hidden;
-}
+.tab.active { background: rgba(255,255,255,0.13); color: #fff; }
 
 .center {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 6px;
-  pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer;
+}
+.mode-label {
+  font-size: clamp(11px,1.6vmin,14px); letter-spacing: 7px; text-transform: uppercase;
+  color: rgba(255,255,255,0.5); margin-bottom: 10px;
 }
 .time-display {
   font-family: 'Orbitron', 'Helvetica Neue', sans-serif;
-  font-size: clamp(36px, 10vmin, 68px);
-  font-weight: 700;
-  letter-spacing: 2px;
-  color: #fff;
-  text-shadow: 0 0 30px rgba(255,255,255,0.3), 0 2px 20px rgba(0,0,0,0.5);
-  /* 5文字固定幅で横ズレ防止 */
-  width: 5.6ch;
-  text-align: center;
+  font-size: clamp(64px, 16vmin, 210px);
+  font-weight: 700; line-height: 1; color: #fff;
+  text-shadow: 0 8px 60px rgba(0,0,0,0.4);
+  display: flex; justify-content: center;
 }
-.mode-label {
-  font-size: clamp(9px, 1.8vmin, 13px);
-  letter-spacing: 5px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.45);
-}
+/* Fixed width per character to prevent horizontal shift */
+.time-display .digit { display: inline-block; width: 0.85em; text-align: center; }
+.time-display .sep   { display: inline-block; width: 0.35em; text-align: center; }
 .hint {
-  font-size: 11px; color: rgba(255,255,255,0.25);
-  margin-top: 4px; opacity: 0; transition: opacity .3s;
+  font-size: clamp(11px,1.5vmin,13px); letter-spacing: 3px;
+  color: rgba(255,255,255,0.4); margin-top: 12px; transition: opacity .3s;
 }
-.water-wrap:hover .hint { opacity: 1; }
 
-.controls { display: flex; align-items: center; gap: 20px; }
+.bottom { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+
+.controls { display: flex; align-items: center; gap: 24px; }
 .btn {
-  width: 44px; height: 44px; border-radius: 50%; font-size: 16px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.15);
-  color: rgba(255,255,255,0.6); cursor: pointer;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: rgba(255,255,255,0.65); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all .2s; font-family: inherit;
   backdrop-filter: blur(10px);
 }
 .btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
 .btn-main {
-  width: 62px; height: 62px; font-size: 22px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.25); color: #fff;
+  width: 70px; height: 70px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.28); color: #fff;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.35);
 }
 .btn-main:hover { background: rgba(255,255,255,0.22); }
 
-.tomatoes { display: flex; gap: 8px; font-size: 18px; min-height: 22px; }
+.tomatoes { display: flex; gap: 10px; font-size: 22px; min-height: 26px; }
 .tomato { opacity: .18; transition: opacity .4s, transform .3s; }
-.tomato.done { opacity: 1; transform: scale(1.1); }
+.tomato.done { opacity: 1; transform: scale(1.12); }
 
-.settings { display: flex; gap: 10px; font-size: 12px; color: rgba(255,255,255,0.3); }
+.settings { display: flex; gap: 12px; font-size: 13px; color: rgba(255,255,255,0.32); }
 .settings span { cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.15); transition: color .2s; }
 .settings span:hover { color: rgba(255,255,255,0.7); }
+.settings span.on { color: rgba(255,255,255,0.85); border-bottom-color: rgba(255,255,255,0.5); }
 
 #flash { position: fixed; inset: 0; pointer-events: none; z-index: 999; opacity: 0; transition: opacity .1s; }
+
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(5,8,16,0.55);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: auto; }
+.modal {
+  width: min(380px, 90vw);
+  background: rgba(20,26,40,0.55);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 26px;
+  padding: 32px 28px 28px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  transform: translateY(8px) scale(.97);
+  transition: transform .25s;
+}
+.modal-overlay.show .modal { transform: translateY(0) scale(1); }
+.modal-title {
+  font-size: 15px; letter-spacing: 5px; text-transform: uppercase;
+  color: rgba(255,255,255,0.5); text-align: center; margin-bottom: 26px;
+}
+.modal-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.modal-row:last-of-type { border-bottom: none; }
+.modal-row-label { display: flex; align-items: center; gap: 12px; font-size: 17px; color: rgba(255,255,255,0.75); }
+.modal-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper button {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06); color: #fff; font-size: 19px; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .2s; font-family: inherit;
+}
+.stepper button:hover { background: rgba(255,255,255,0.18); }
+.stepper input {
+  width: 48px; text-align: center; background: none; border: none; color: #fff;
+  font-family: 'Orbitron', sans-serif; font-size: 19px; letter-spacing: 3px; -moz-appearance: textfield;
+}
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.modal-actions { display: flex; gap: 14px; margin-top: 28px; }
+.modal-actions button {
+  flex: 1; padding: 15px 0; border-radius: 50px; border: 1px solid transparent; font-family: inherit;
+  font-size: 15px; letter-spacing: 1px; cursor: pointer; transition: all .2s;
+}
+.modal-cancel { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.14); }
+.modal-cancel:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.modal-save { background: rgba(255,255,255,0.85); color: #0a1a2e; font-weight: 600; }
+.modal-save:hover { background: #fff; }
 </style>
 </head>
 <body class="work">
 
 <div id="flash"></div>
 
+<!-- full-bleed water -->
+<svg class="water-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" id="wg1" stop-color="#fb923c" stop-opacity="0.9"/>
+      <stop offset="100%" id="wg2" stop-color="#7c2d12" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="foamGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect id="waterFill" x="0" y="500" width="1000" height="1000" fill="url(#waterGrad)" opacity="0.85"/>
+  <path id="wavePath2" fill="url(#waterGrad)" opacity="0.4"/>
+  <path id="wavePath1" fill="url(#waterGrad)" opacity="0.78"/>
+  <rect id="foamRect" x="0" y="482" width="1000" height="40" fill="url(#foamGrad)" opacity="0.7"/>
+</svg>
+
+<div class="vignette"></div>
+
 <div class="card">
   <div class="tabs">
-    <button class="tab active" data-mode="work">集中</button>
-    <button class="tab" data-mode="short">休憩</button>
-    <button class="tab" data-mode="long">長休憩</button>
+    <button class="tab active" data-mode="work">Focus</button>
+    <button class="tab" data-mode="short">Break</button>
+    <button class="tab" data-mode="long">Long Break</button>
   </div>
 
-  <div class="water-wrap" id="ringWrap">
-    <div class="outer-ring"></div>
-    <svg class="water-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <clipPath id="circleClip"><circle cx="200" cy="200" r="196"/></clipPath>
-        <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" id="wg1" stop-color="#f97316" stop-opacity="0.9"/>
-          <stop offset="100%" id="wg2" stop-color="#b91c1c" stop-opacity="1"/>
-        </linearGradient>
-        <linearGradient id="foamGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#fff" stop-opacity="0.2"/>
-          <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <g clip-path="url(#circleClip)">
-        <rect id="waterFill" x="0" y="200" width="400" height="400" fill="url(#waterGrad)" opacity="0.85"/>
-        <path id="wavePath2" fill="url(#waterGrad)" opacity="0.4"/>
-        <path id="wavePath1" fill="url(#waterGrad)" opacity="0.75"/>
-        <rect id="foamRect" x="0" y="188" width="400" height="32" fill="url(#foamGrad)" opacity="0.7"/>
-      </g>
-    </svg>
-    <div class="center">
-      <div class="time-display" id="timeDisplay">25:00</div>
-      <div class="mode-label" id="modeLabel">FOCUS</div>
-      <div class="hint">タップで開始</div>
+  <div class="center" id="center">
+    <div class="mode-label" id="modeLabel">FOCUS</div>
+    <div class="time-display" id="timeDisplay"><span class="digit">2</span><span class="digit">5</span><span class="sep">:</span><span class="digit">0</span><span class="digit">0</span></div>
+    <div class="hint" id="hint">TAP OR PRESS SPACE TO START</div>
+  </div>
+
+  <div class="bottom">
+    <div class="tomatoes" id="tomatoes"></div>
+
+    <div class="controls">
+      <!-- Reset -->
+      <button class="btn" id="btnReset" aria-label="Reset">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+      </button>
+      <!-- Play/Pause -->
+      <button class="btn btn-main" id="btnPlay" aria-label="Start">
+        <svg id="iconPlay" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="7,4 20,12 7,20"/>
+        </svg>
+        <svg id="iconPause" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+          <rect x="6" y="4" width="4" height="16" rx="1.2"/>
+          <rect x="14" y="4" width="4" height="16" rx="1.2"/>
+        </svg>
+      </button>
+      <!-- Skip -->
+      <button class="btn" id="btnSkip" aria-label="Skip">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5,4 15,12 5,20"/>
+          <rect x="16" y="4" width="3" height="16" rx="1"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="settings">
+      <span id="lblWork">Focus 25m</span>
+      <span>·</span>
+      <span id="lblShort">Break 5m</span>
+      <span>·</span>
+      <span id="lblLong">Long Break 15m</span>
+      <span>·</span>
+      <span id="lblAuto">Auto-start Off</span>
     </div>
   </div>
+</div>
 
-  <div class="controls">
-    <!-- リセット -->
-    <button class="btn" id="btnReset" aria-label="リセット">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74"/>
-        <path d="M3 3v5h5"/>
-      </svg>
-    </button>
-    <!-- 再生/停止 -->
-    <button class="btn btn-main" id="btnPlay" aria-label="開始">
-      <svg id="iconPlay" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-        <polygon points="6,3 20,12 6,21"/>
-      </svg>
-      <svg id="iconPause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="display:none">
-        <rect x="5" y="3" width="4" height="18" rx="1"/>
-        <rect x="15" y="3" width="4" height="18" rx="1"/>
-      </svg>
-    </button>
-    <!-- スキップ -->
-    <button class="btn" id="btnSkip" aria-label="スキップ">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <polygon points="5,3 16,12 5,21"/>
-        <rect x="17" y="3" width="3" height="18" rx="1"/>
-      </svg>
-    </button>
-  </div>
-
-  <div class="tomatoes" id="tomatoes"></div>
-
-  <div class="settings">
-    <span id="lblWork">集中 25分</span>
-    <span>·</span>
-    <span id="lblShort">休憩 5分</span>
-    <span>·</span>
-    <span id="lblLong">長休憩 15分</span>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title">Time Settings</div>
+    <div class="modal-row">
+      <div class="modal-row-label"><span class="modal-dot" style="background:#38bdf8"></span>Focus</div>
+      <div class="stepper">
+        <button type="button" data-target="inpWork" data-step="-1">−</button>
+        <input type="number" min="1" max="120" id="inpWork">
+        <button type="button" data-target="inpWork" data-step="1">+</button>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-row-label"><span class="modal-dot" style="background:#fb923c"></span>Break</div>
+      <div class="stepper">
+        <button type="button" data-target="inpShort" data-step="-1">−</button>
+        <input type="number" min="1" max="120" id="inpShort">
+        <button type="button" data-target="inpShort" data-step="1">+</button>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-row-label"><span class="modal-dot" style="background:#a78bfa"></span>Long Break</div>
+      <div class="stepper">
+        <button type="button" data-target="inpLong" data-step="-1">−</button>
+        <input type="number" min="1" max="120" id="inpLong">
+        <button type="button" data-target="inpLong" data-step="1">+</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-cancel" id="modalCancel">Cancel</button>
+      <button type="button" class="modal-save" id="modalSave">Save</button>
+    </div>
   </div>
 </div>
 
 <script>
 const MODES = {
-  work:  { lbl:'FOCUS',      min:25, c1:'#f97316', c2:'#7c2d12', body:'work'  },
-  short: { lbl:'BREAK',      min:5,  c1:'#38bdf8', c2:'#0369a1', body:'short' },
+  work:  { lbl:'FOCUS',      min:25, c1:'#38bdf8', c2:'#0369a1', body:'work'  },
+  short: { lbl:'BREAK',      min:5,  c1:'#fb923c', c2:'#7c2d12', body:'short' },
   long:  { lbl:'LONG BREAK', min:15, c1:'#a78bfa', c2:'#3b0764', body:'long'  },
 };
 const TOTAL_SESS = 4;
-const W = 400, CX = 200, R = 196;
+const W = 1000, H = 1000, WATER_MAX = 0.8;
 
 let mode='work', running=false, rem=0, tot=0, sess=0, tid=null, aid=0, actx=null;
-let ph1=0, ph2=Math.PI*0.7;
+let ph1=0, ph2=Math.PI*0.7, lastTick=0;
+let autoStart=localStorage.getItem('fluxpomo_auto')==='1';
 
 function $id(id){ return document.getElementById(id) }
 const $td=$id('timeDisplay'), $ml=$id('modeLabel'), $play=$id('btnPlay');
-const $toms=$id('tomatoes'), $flash=$id('flash'), $wrap=$id('ringWrap');
+const $toms=$id('tomatoes'), $flash=$id('flash'), $center=$id('center'), $hint=$id('hint');
 const $wf=$id('waterFill'), $wp1=$id('wavePath1'), $wp2=$id('wavePath2'), $foam=$id('foamRect');
 const $wg1=$id('wg1'), $wg2=$id('wg2');
 
-function fmt(s){ return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0') }
+function fmt(s){ s=Math.max(0,s); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0') }
+function fmtHtml(s){
+  return [...fmt(s)].map(c=>`<span class="${c===':'?'sep':'digit'}">${c}</span>`).join('');
+}
 
-function getWaterY(){ return CX + R - (tot>0?rem/tot:1)*(R*2) }
+function getWaterY(){
+  let effRem=rem;
+  if(running){
+    const elapsed=(performance.now()-lastTick)/1000;
+    effRem=rem-Math.min(elapsed,1);
+  }
+  return H - (tot>0?effRem/tot:1)*H*WATER_MAX;
+}
 
 function wavePath(phase, amp, yBase){
-  const steps=40;
+  const steps=44;
   let d=`M 0 ${yBase}`;
   for(let i=0;i<=steps;i++){
     const x=(i/steps)*W;
@@ -229,18 +316,18 @@ function wavePath(phase, amp, yBase){
                   + Math.sin(phase*1.6+(i/steps)*Math.PI*3.5)*(amp*0.35);
     d+=` L ${x.toFixed(1)} ${y.toFixed(1)}`;
   }
-  return d+` L ${W} ${W} L 0 ${W} Z`;
+  return d+` L ${W} ${H} L 0 ${H} Z`;
 }
 
 function drawWave(){
-  const y=getWaterY(), amp=9;
+  const y=getWaterY(), amp=16;
   $wf.setAttribute('y', y+amp+2);
-  $foam.setAttribute('y', y-16);
+  $foam.setAttribute('y', y-18);
   $wp1.setAttribute('d', wavePath(ph1, amp, y));
-  $wp2.setAttribute('d', wavePath(ph2, amp*0.75, y+5));
+  $wp2.setAttribute('d', wavePath(ph2, amp*0.75, y+6));
 }
 
-(function loop(){ ph1+=0.038; ph2+=0.025; drawWave(); requestAnimationFrame(loop); })();
+(function loop(){ ph1+=0.03; ph2+=0.02; drawWave(); requestAnimationFrame(loop); })();
 
 function applyTheme(m){
   const {c1,c2,body}=MODES[m];
@@ -253,38 +340,39 @@ function setMode(m, auto=false){
   mode=m; tot=rem=MODES[m].min*60;
   $ml.textContent=MODES[m].lbl;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===m));
-  applyTheme(m); $td.textContent=fmt(rem);
+  applyTheme(m); $td.innerHTML=fmtHtml(rem);
   auto?start():stop();
 }
 
 function setPlayIcon(playing){
-  document.getElementById('iconPlay').style.display = playing ? 'none' : '';
-  document.getElementById('iconPause').style.display = playing ? '' : 'none';
+  $id('iconPlay').style.display = playing ? 'none' : '';
+  $id('iconPause').style.display = playing ? '' : 'none';
+  $hint.style.opacity = playing ? '0' : '1';
 }
 function start(){
   if(rem<=0)return; running=true; setPlayIcon(true); aid++;
-  const s=aid; clearInterval(tid);
+  const s=aid; clearInterval(tid); lastTick=performance.now();
   tid=setInterval(()=>{
     if(!running||s!==aid)return;
     if(rem<=0){done();return;}
-    rem--; $td.textContent=fmt(rem);
+    rem--; lastTick=performance.now(); $td.innerHTML=fmtHtml(rem);
     if(rem<=5&&rem>0)flashOnce();
   },1000);
 }
 function stop(){ running=false; setPlayIcon(false); clearInterval(tid); }
-function toggle(){ if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)(); running?stop():start(); }
+function toggle(){ if(!actx){try{actx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}} running?stop():start(); }
 
 function done(){
   stop(); beep(); bigFlash();
   if(mode==='work'){
-    sess=Math.min(sess+1,TOTAL_SESS); renderToms();
-    sess>=TOTAL_SESS?(sess=0,renderToms(),setMode('long',true)):setMode('short',true);
-  } else setMode('work',true);
+    sess=Math.min(sess+1,TOTAL_SESS); renderToms(); saveSess();
+    sess>=TOTAL_SESS?(sess=0,renderToms(),saveSess(),setMode('long',autoStart)):setMode('short',autoStart);
+  } else setMode('work',autoStart);
 }
 
 function flashOnce(){
-  $flash.style.background=MODES[mode].c1; $flash.style.transition='opacity .1s';
-  $flash.style.opacity='0.07'; setTimeout(()=>$flash.style.opacity='0',200);
+  $flash.style.background=MODES[mode].c1; $flash.style.transition='opacity .08s';
+  $flash.style.opacity='0.22'; setTimeout(()=>$flash.style.opacity='0',220);
 }
 function bigFlash(){
   $flash.style.background=MODES[mode].c1; $flash.style.transition='opacity .05s';
@@ -314,26 +402,75 @@ function renderToms(){
   }
 }
 
-function editMin(m,lblId,label){
-  $id(lblId).addEventListener('click',()=>{
-    const v=prompt(MODES[m].lbl+' の時間（分）:',MODES[m].min);
-    const n=parseInt(v);
-    if(n>0&&n<120){
-      MODES[m].min=n; $id(lblId).textContent=label+n+'分';
-      if(mode===m){tot=rem=n*60;$td.textContent=fmt(rem);}
-    }
-  });
+const $modal=$id('modalOverlay');
+const modalInputs={work:$id('inpWork'),short:$id('inpShort'),long:$id('inpLong')};
+const clampMin=n=>Math.min(120,Math.max(1,n||1));
+
+function updateLabels(){
+  $id('lblWork').textContent='Focus '+MODES.work.min+'m';
+  $id('lblShort').textContent='Break '+MODES.short.min+'m';
+  $id('lblLong').textContent='Long Break '+MODES.long.min+'m';
 }
-editMin('work','lblWork','集中 ');
-editMin('short','lblShort','休憩 ');
-editMin('long','lblLong','長休憩 ');
+function saveDurations(){
+  localStorage.setItem('fluxpomo_durations', JSON.stringify({work:MODES.work.min,short:MODES.short.min,long:MODES.long.min}));
+}
+function saveSess(){ localStorage.setItem('fluxpomo_sess', String(sess)); }
+function loadSettings(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('fluxpomo_durations')||'null');
+    if(saved) ['work','short','long'].forEach(m=>{ if(saved[m]>0) MODES[m].min=clampMin(saved[m]); });
+  }catch(e){}
+  sess=Math.min(TOTAL_SESS,Math.max(0,parseInt(localStorage.getItem('fluxpomo_sess'))||0));
+}
+
+function openModal(){
+  Object.keys(modalInputs).forEach(m=>modalInputs[m].value=MODES[m].min);
+  $modal.classList.add('show');
+}
+function closeModal(){ $modal.classList.remove('show'); }
+function saveModal(){
+  Object.keys(modalInputs).forEach(m=>{ MODES[m].min=clampMin(parseInt(modalInputs[m].value)); });
+  updateLabels(); saveDurations();
+  tot=rem=MODES[mode].min*60; $td.innerHTML=fmtHtml(rem);
+  closeModal();
+}
+
+document.querySelectorAll('.stepper button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const input=$id(btn.dataset.target);
+    input.value=clampMin(parseInt(input.value)+parseInt(btn.dataset.step));
+  });
+});
+['lblWork','lblShort','lblLong'].forEach(id=>$id(id).addEventListener('click',openModal));
+$id('modalCancel').addEventListener('click',closeModal);
+$id('modalSave').addEventListener('click',saveModal);
+$modal.addEventListener('click',e=>{ if(e.target===$modal)closeModal(); });
+window.addEventListener('keydown',e=>{
+  if(!$modal.classList.contains('show'))return;
+  if(e.key==='Escape')closeModal();
+  if(e.key==='Enter'&&/input/i.test(e.target.tagName||''))saveModal();
+});
+
+function updateAutoLbl(){
+  $id('lblAuto').textContent='Auto-start '+(autoStart?'On':'Off');
+  $id('lblAuto').classList.toggle('on',autoStart);
+}
+$id('lblAuto').addEventListener('click',()=>{
+  autoStart=!autoStart; localStorage.setItem('fluxpomo_auto',autoStart?'1':'0'); updateAutoLbl();
+});
+updateAutoLbl();
 
 $play.addEventListener('click',toggle);
-$wrap.addEventListener('click',e=>{if(!e.target.closest('button'))toggle();});
-$id('btnReset').addEventListener('click',()=>{stop();rem=tot;$td.textContent=fmt(rem);});
+$center.addEventListener('click',e=>{if(!e.target.closest('button'))toggle();});
+$id('btnReset').addEventListener('click',()=>{stop();rem=tot;$td.innerHTML=fmtHtml(rem);sess=0;renderToms();saveSess();});
 $id('btnSkip').addEventListener('click',done);
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>setMode(t.dataset.mode)));
+window.addEventListener('keydown',e=>{
+  if(e.code==='Space'&&!$modal.classList.contains('show')&&!/input|textarea/i.test((e.target.tagName||''))){e.preventDefault();toggle();}
+});
 
+loadSettings();
+updateLabels();
 setMode('work');
 renderToms();
 </script>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fluxpomo</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Helvetica Neue', sans-serif;
+  overflow: hidden;
+  transition: background 2s;
+  user-select: none;
+}
+
+body.work  { background: linear-gradient(160deg, #001a2e 0%, #003d5c 45%, #00607a 100%); }
+body.short { background: linear-gradient(160deg, #1a0533 0%, #0d1b4b 40%, #0a2a3d 100%); }
+body.long  { background: linear-gradient(160deg, #0d0d2e 0%, #1a1a5e 45%, #2a2a8a 100%); }
+
+.card {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 28px;
+}
+
+.tabs {
+  display: flex; gap: 4px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 50px; padding: 4px;
+  backdrop-filter: blur(10px);
+}
+.tab {
+  width: 100px; padding: 7px 0; border-radius: 50px; font-size: 13px;
+  cursor: pointer; color: rgba(255,255,255,0.45);
+  transition: all .3s; border: none; background: none; font-family: inherit;
+  letter-spacing: 1px; text-align: center;
+}
+.tab.active { background: rgba(255,255,255,0.12); color: #fff; }
+
+/* Larger on desktop, moderate size on mobile */
+.water-wrap {
+  position: relative;
+  width: min(72vmin, 420px);
+  height: min(72vmin, 420px);
+  cursor: pointer;
+}
+
+.outer-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+  box-shadow: 0 0 60px rgba(100,200,255,0.12), inset 0 0 60px rgba(100,200,255,0.06);
+}
+
+svg.water-svg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  border-radius: 50%; overflow: hidden;
+}
+
+.center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px;
+  pointer-events: none;
+}
+.time-display {
+  font-family: 'Orbitron', 'Helvetica Neue', sans-serif;
+  font-size: clamp(36px, 10vmin, 68px);
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255,255,255,0.3), 0 2px 20px rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+}
+/* Fixed width per character to prevent horizontal shift */
+.time-display .digit {
+  display: inline-block;
+  width: 0.85em;
+  text-align: center;
+}
+.time-display .sep {
+  display: inline-block;
+  width: 0.35em;
+  text-align: center;
+}
+.mode-label {
+  font-size: clamp(9px, 1.8vmin, 13px);
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+.hint {
+  font-size: 16px; color: rgba(255,255,255,0.25);
+  margin-top: 8px; opacity: 0; transition: opacity .3s;
+}
+.water-wrap:hover .hint { opacity: 1; }
+
+.controls { display: flex; align-items: center; gap: 20px; }
+.btn {
+  width: 44px; height: 44px; border-radius: 50%; font-size: 16px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.6); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; font-family: inherit;
+  backdrop-filter: blur(10px);
+}
+.btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.btn-main {
+  width: 62px; height: 62px; font-size: 22px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25); color: #fff;
+}
+.btn-main:hover { background: rgba(255,255,255,0.22); }
+
+.tomatoes { display: flex; gap: 8px; font-size: 18px; min-height: 22px; }
+.tomato { opacity: .18; transition: opacity .4s, transform .3s; }
+.tomato.done { opacity: 1; transform: scale(1.1); }
+
+.settings { display: flex; gap: 10px; font-size: 12px; color: rgba(255,255,255,0.3); }
+.settings span { cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.15); transition: color .2s; }
+.settings span:hover { color: rgba(255,255,255,0.7); }
+.settings span.on { color: rgba(255,255,255,0.85); border-bottom-color: rgba(255,255,255,0.5); }
+
+#flash { position: fixed; inset: 0; pointer-events: none; z-index: 999; opacity: 0; transition: opacity .1s; }
+</style>
+</head>
+<body class="work">
+
+<div id="flash"></div>
+
+<div class="card">
+  <div class="tabs">
+    <button class="tab active" data-mode="work">Focus</button>
+    <button class="tab" data-mode="short">Break</button>
+    <button class="tab" data-mode="long">Long Break</button>
+  </div>
+
+  <div class="water-wrap" id="ringWrap">
+    <div class="outer-ring"></div>
+    <svg class="water-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="circleClip"><circle cx="200" cy="200" r="196"/></clipPath>
+        <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" id="wg1" stop-color="#f97316" stop-opacity="0.9"/>
+          <stop offset="100%" id="wg2" stop-color="#b91c1c" stop-opacity="1"/>
+        </linearGradient>
+        <linearGradient id="foamGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fff" stop-opacity="0.2"/>
+          <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <g clip-path="url(#circleClip)">
+        <rect id="waterFill" x="0" y="200" width="400" height="400" fill="url(#waterGrad)" opacity="0.85"/>
+        <path id="wavePath2" fill="url(#waterGrad)" opacity="0.4"/>
+        <path id="wavePath1" fill="url(#waterGrad)" opacity="0.75"/>
+        <rect id="foamRect" x="0" y="188" width="400" height="32" fill="url(#foamGrad)" opacity="0.7"/>
+      </g>
+    </svg>
+    <div class="center">
+      <div class="time-display" id="timeDisplay"><span class="digit">2</span><span class="digit">5</span><span class="sep">:</span><span class="digit">0</span><span class="digit">0</span></div>
+      <div class="mode-label" id="modeLabel">FOCUS</div>
+      <div class="hint">Tap to start</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <!-- Reset -->
+    <button class="btn" id="btnReset" aria-label="Reset">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74"/>
+        <path d="M3 3v5h5"/>
+      </svg>
+    </button>
+    <!-- Play/Pause -->
+    <button class="btn btn-main" id="btnPlay" aria-label="Start">
+      <svg id="iconPlay" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="6,3 20,12 6,21"/>
+      </svg>
+      <svg id="iconPause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+        <rect x="5" y="3" width="4" height="18" rx="1"/>
+        <rect x="15" y="3" width="4" height="18" rx="1"/>
+      </svg>
+    </button>
+    <!-- Skip -->
+    <button class="btn" id="btnSkip" aria-label="Skip">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="5,3 16,12 5,21"/>
+        <rect x="17" y="3" width="3" height="18" rx="1"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="tomatoes" id="tomatoes"></div>
+
+  <div class="settings">
+    <span id="lblWork">Focus 25m</span>
+    <span>·</span>
+    <span id="lblShort">Break 5m</span>
+    <span>·</span>
+    <span id="lblLong">Long Break 15m</span>
+    <span>·</span>
+    <span id="lblAuto">Auto-start Off</span>
+  </div>
+</div>
+
+<script>
+const MODES = {
+  work:  { lbl:'FOCUS',      min:25, c1:'#38bdf8', c2:'#0369a1', body:'work'  },
+  short: { lbl:'BREAK',      min:5,  c1:'#f97316', c2:'#7c2d12', body:'short' },
+  long:  { lbl:'LONG BREAK', min:15, c1:'#a78bfa', c2:'#3b0764', body:'long'  },
+};
+const TOTAL_SESS = 4;
+const W = 400, CX = 200, R = 196;
+
+let mode='work', running=false, rem=0, tot=0, sess=0, tid=null, aid=0, actx=null;
+let ph1=0, ph2=Math.PI*0.7, lastTick=0;
+let autoStart=localStorage.getItem('fluxpomo_auto')==='1';
+
+function $id(id){ return document.getElementById(id) }
+const $td=$id('timeDisplay'), $ml=$id('modeLabel'), $play=$id('btnPlay');
+const $toms=$id('tomatoes'), $flash=$id('flash'), $wrap=$id('ringWrap');
+const $wf=$id('waterFill'), $wp1=$id('wavePath1'), $wp2=$id('wavePath2'), $foam=$id('foamRect');
+const $wg1=$id('wg1'), $wg2=$id('wg2');
+
+function fmt(s){ return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0') }
+function fmtHtml(s){
+  return [...fmt(s)].map(c=>`<span class="${c===':'?'sep':'digit'}">${c}</span>`).join('');
+}
+
+function getWaterY(){
+  let effRem=rem;
+  if(running){
+    const elapsed=(performance.now()-lastTick)/1000;
+    effRem=rem-Math.min(elapsed,1);
+  }
+  return CX + R - (tot>0?effRem/tot:1)*(R*2);
+}
+
+function wavePath(phase, amp, yBase){
+  const steps=40;
+  let d=`M 0 ${yBase}`;
+  for(let i=0;i<=steps;i++){
+    const x=(i/steps)*W;
+    const y=yBase + Math.sin(phase+(i/steps)*Math.PI*2.2)*amp
+                  + Math.sin(phase*1.6+(i/steps)*Math.PI*3.5)*(amp*0.35);
+    d+=` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+  }
+  return d+` L ${W} ${W} L 0 ${W} Z`;
+}
+
+function drawWave(){
+  const y=getWaterY(), amp=9;
+  $wf.setAttribute('y', y+amp+2);
+  $foam.setAttribute('y', y-16);
+  $wp1.setAttribute('d', wavePath(ph1, amp, y));
+  $wp2.setAttribute('d', wavePath(ph2, amp*0.75, y+5));
+}
+
+(function loop(){ ph1+=0.038; ph2+=0.025; drawWave(); requestAnimationFrame(loop); })();
+
+function applyTheme(m){
+  const {c1,c2,body}=MODES[m];
+  $wg1.setAttribute('stop-color',c1);
+  $wg2.setAttribute('stop-color',c2);
+  document.body.className=body;
+}
+
+function setMode(m, auto=false){
+  mode=m; tot=rem=MODES[m].min*60;
+  $ml.textContent=MODES[m].lbl;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===m));
+  applyTheme(m); $td.innerHTML=fmtHtml(rem);
+  auto?start():stop();
+}
+
+function setPlayIcon(playing){
+  document.getElementById('iconPlay').style.display = playing ? 'none' : '';
+  document.getElementById('iconPause').style.display = playing ? '' : 'none';
+}
+function start(){
+  if(rem<=0)return; running=true; setPlayIcon(true); aid++;
+  const s=aid; clearInterval(tid); lastTick=performance.now();
+  tid=setInterval(()=>{
+    if(!running||s!==aid)return;
+    if(rem<=0){done();return;}
+    rem--; lastTick=performance.now(); $td.innerHTML=fmtHtml(rem);
+    if(rem<=5&&rem>0)flashOnce();
+  },1000);
+}
+function stop(){ running=false; setPlayIcon(false); clearInterval(tid); }
+function toggle(){ if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)(); running?stop():start(); }
+
+function done(){
+  stop(); beep(); bigFlash();
+  if(mode==='work'){
+    sess=Math.min(sess+1,TOTAL_SESS); renderToms();
+    sess>=TOTAL_SESS?(sess=0,renderToms(),setMode('long',autoStart)):setMode('short',autoStart);
+  } else setMode('work',autoStart);
+}
+
+function flashOnce(){
+  $flash.style.background=MODES[mode].c1; $flash.style.transition='opacity .08s';
+  $flash.style.opacity='0.22'; setTimeout(()=>$flash.style.opacity='0',220);
+}
+function bigFlash(){
+  $flash.style.background=MODES[mode].c1; $flash.style.transition='opacity .05s';
+  $flash.style.opacity='0.3'; setTimeout(()=>{$flash.style.transition='opacity 1.2s';$flash.style.opacity='0';},100);
+}
+
+function beep(){
+  try{
+    [0,.22,.44].forEach((d,i)=>{
+      const o=actx.createOscillator(),g=actx.createGain();
+      o.connect(g);g.connect(actx.destination);
+      o.frequency.value=440*(1+i*.25);o.type='sine';
+      const t=actx.currentTime+d;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.2,t+.02);
+      g.gain.exponentialRampToValueAtTime(.001,t+.3);
+      o.start(t);o.stop(t+.32);
+    });
+  }catch(e){}
+}
+
+function renderToms(){
+  $toms.innerHTML='';
+  for(let i=0;i<TOTAL_SESS;i++){
+    const s=document.createElement('span');
+    s.className='tomato'+(i<sess?' done':'');
+    s.textContent='🍅'; $toms.appendChild(s);
+  }
+}
+
+function editMin(m,lblId,label){
+  $id(lblId).addEventListener('click',()=>{
+    const v=prompt(MODES[m].lbl+' duration (minutes):',MODES[m].min);
+    const n=parseInt(v);
+    if(n>0&&n<120){
+      MODES[m].min=n; $id(lblId).textContent=label+n+'m';
+      if(mode===m){tot=rem=n*60;$td.innerHTML=fmtHtml(rem);}
+    }
+  });
+}
+editMin('work','lblWork','Focus ');
+editMin('short','lblShort','Break ');
+editMin('long','lblLong','Long Break ');
+
+function updateAutoLbl(){
+  $id('lblAuto').textContent='Auto-start '+(autoStart?'On':'Off');
+  $id('lblAuto').classList.toggle('on',autoStart);
+}
+$id('lblAuto').addEventListener('click',()=>{
+  autoStart=!autoStart; localStorage.setItem('fluxpomo_auto',autoStart?'1':'0'); updateAutoLbl();
+});
+updateAutoLbl();
+
+$play.addEventListener('click',toggle);
+$wrap.addEventListener('click',e=>{if(!e.target.closest('button'))toggle();});
+$id('btnReset').addEventListener('click',()=>{stop();rem=tot;$td.innerHTML=fmtHtml(rem);});
+$id('btnSkip').addEventListener('click',done);
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>setMode(t.dataset.mode)));
+
+setMode('work');
+renderToms();
+</script>
+</body>
+</html>
